@@ -1,53 +1,93 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { letsFetch } from "./letsFetch";
-const BASE_URL = "https://pokeapi.co/api/v2/pokemon/";
-const App = () => {
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState();
-  const [data, setData] = useState();
-  const [typedText, setTypedText] = useState("");
-  const [lastsearch, setLastSearch] = useState();
 
-  const setUpFetch = async () => {
+const App = () => {
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState();
+  const [sprites, setSprites] = useState([]);
+  const [hasmore, setHasmore] = useState(true);
+
+  const [data, setData] = useState();
+  const elementRef = useRef(null);
+
+  const setUpFetch = async (cantPoke) => {
     setLoading(true);
 
-    const response = await letsFetch(`${BASE_URL}${typedText}`);
-    setLastSearch(typedText);
+    const response = await letsFetch(
+      `https://pokeapi.co/api/v2/pokemon?offset=${cantPoke}&limit=20`
+    );
+
     if (response.error) {
-      console.log(response.error);
       setError(true);
       setLoading(false);
       setData(null);
     } else {
-      setData(response);
-      setLoading(false);
-      setError(false);
+      const data = response.results;
+
+      const fetchSprites = async (url) => {
+        const resp = await fetch(url);
+        const json = await resp.json();
+        return json.sprites.other.dream_world.front_default;
+      };
+
+      const loadSprites = async (datos) => {
+        const spritesPromises = datos.map((item) => fetchSprites(item.url));
+        const spritesLoaded = await Promise.all(spritesPromises); //necessary to wait for all, otherwise all undefined
+
+        setData(datos);
+
+        setSprites([...sprites, ...spritesLoaded]);
+        setOffset((offset) => offset + 20);
+        //o tambien se puede setOffset(offset + 20);
+        setLoading(false);
+      };
+
+      loadSprites(data);
     }
   };
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setUpFetch();
-    setTypedText("");
-  };
+  // const handleClick = () => {
+  //   setUpFetch(offset);
+  // };
   useEffect(() => {
-    console.log(data);
-  }, [data]);
+    const observer = new IntersectionObserver(onIntersection);
+    if (observer && elementRef.current) {
+      console.log("observer connected");
+      observer.observe(elementRef.current);
+    }
+    return () => {
+      console.log("observer disconnected");
+      if (observer) observer.disconnect();
+    };
+  }, [sprites]);
 
+  const onIntersection = async (entries) => {
+    const firstEntry = entries[0];
+    if (firstEntry.isIntersecting && hasmore) setUpFetch(offset);
+  };
   return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Enter name"
-          value={typedText}
-          onChange={(e) => setTypedText(e.target.value)}
-        ></input>
-        <button>SEARCH</button>
-      </form>
-      {error && <h2>We couldn't find pokemon {lastsearch}</h2>}
-      {loading && <h2>Loading...</h2>}
-      {data && <h2>Data fount</h2>}
-    </>
+    <div style={{ height: "100vh" }}>
+      <h1 style={{ display: "block" }}>POKEMONS</h1>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          width: "70%",
+          margin: "0 auto",
+        }}
+      >
+        {sprites?.map((pokemon, index) => {
+          return (
+            <img
+              key={index}
+              src={pokemon}
+              style={{ width: 180, height: "auto" }}
+            ></img>
+          );
+        })}
+      </div>
+      {/* <button onClick={handleClick}>SEARCH</button> */}
+      {hasmore && <p ref={elementRef}>loading...</p>}
+    </div>
   );
 };
 export default App;
