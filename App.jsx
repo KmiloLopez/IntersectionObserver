@@ -54,16 +54,35 @@ const App = () => {
       console.log("observer connected");
       observer.observe(elementRef.current);
     }
+
+    const observerr = new IntersectionObserver(showorhide);
+    sprites.map((sprite, index) => {
+      const elemento = document.getElementById(`${index + 1}`);
+      observerr.observe(elemento);
+    });
+
     return () => {
       console.log("observer disconnected");
       if (observer) observer.disconnect();
+      if (observerr) observerr.disconnect();
     };
   }, [sprites]);
 
+  const showorhide = (entries) => {
+    entries.map((entry) => {
+      if (entry.isIntersecting) {
+        console.log("yes ");
+        entry.target.classList.add("visible");
+      } else {
+        entry.target.classList.remove("visible");
+      }
+    });
+  };
   const onIntersection = async (entries) => {
     const firstEntry = entries[0];
     if (firstEntry.isIntersecting && hasmore) setUpFetch(offset);
   };
+
   return (
     <div style={{ height: "100vh" }}>
       <h1 style={{ display: "block" }}>POKEMONS</h1>
@@ -76,11 +95,14 @@ const App = () => {
         }}
       >
         {sprites?.map((pokemon, index) => {
+          const newIndex = index + 1;
+
           return (
             <img
-              key={index}
+              id={newIndex}
+              key={newIndex}
               src={pokemon}
-              style={{ width: 180, height: "auto" }}
+              className="pokebox"
             ></img>
           );
         })}

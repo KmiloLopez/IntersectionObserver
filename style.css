@@ -95,3 +95,17 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+.pokebox{
+
+    width: 180;
+    height: "auto";
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: 1s ease-in-out all;
+
+}
+
+.visible{
+  opacity: 1;
+  transform:translateY(0px)
+}
